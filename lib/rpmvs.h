@@ -66,6 +66,8 @@ void rpmvsInitRange(struct rpmvs_s *sis, int range);
 
 void rpmvsFiniRange(struct rpmvs_s *sis, int range);
 
+int rpmvsRange(struct rpmvs_s *vs); 
+
 int rpmvsVerify(struct rpmvs_s *sis, int type,
                        rpmsinfoCb cb, void *cbdata);
 
