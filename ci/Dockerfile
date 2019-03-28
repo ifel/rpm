@@ -30,6 +30,7 @@ RUN dnf -y install \
   ima-evm-utils-devel \
   libcap-devel \
   libacl-devel \
+  audit-libs-devel \
   lua-devel readline-devel \
   dbus-devel \
   fakechroot which \
@@ -50,7 +51,11 @@ RUN ./configure \
   --with-cap \
   --with-acl \
   --with-lua \
+<<<<<<< HEAD
   --enable-silent-rules \
+=======
+  --with-audit \
+>>>>>>> ad16a04b6... Add plugin for logging audit events for package operations as per OSPP v4.2
   --enable-python \
   --enable-werror
 
