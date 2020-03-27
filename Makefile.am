@@ -16,6 +16,7 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--with-selinux \
 	--with-imaevm \
 	--with-crypto=openssl \
+	--with-fsverity \
 	--disable-dependency-tracking
 
 include $(top_srcdir)/rpm.am
