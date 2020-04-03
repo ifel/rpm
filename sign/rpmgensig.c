@@ -22,6 +22,7 @@
 #include "lib/rpmlead.h"
 #include "lib/signature.h"
 #include "sign/rpmsignfiles.h"
+#include "sign/rpmsignverity.h"
 
 #include "debug.h"
 
@@ -498,6 +499,61 @@ static rpmRC includeFileSignatures(Header *sigp, Header *hdrp)
 #endif
 }
 
+static rpmRC includeVeritySignatures(FD_t fd, Header *sigp, Header *hdrp)
+{
+#ifdef WITH_FSVERITY
+    rpmRC rc;
+    char *key = rpmExpand("%{?_file_signing_key}", NULL);
+    char *keypass = rpmExpand("%{?_file_signing_key_password}", NULL);
+    char *cert = rpmExpand("%{?_file_signing_cert}", NULL);
+
+    if (rstreq(keypass, "")) {
+	free(keypass);
+	keypass = NULL;
+    }
+
+    if (key && cert) {
+	rc = rpmSignVerity(fd, *sigp, *hdrp, key, keypass, cert);
+    } else {
+	rpmlog(RPMLOG_ERR, _("fsverity signatures requires a key and a cert\n"));
+	rc = RPMRC_FAIL;
+    }
+
+    free(keypass);
+    free(key);
+    free(cert);
+    return rc;
+#else
+    rpmlog(RPMLOG_ERR, _("fsverity signing support not built in\n"));
+    return RPMRC_FAIL;
+#endif
+}
+
+static int msgCb(struct rpmsinfo_s *sinfo, void *cbdata)
+{
+    char **msg = cbdata;
+    if (sinfo->rc && *msg == NULL)
+	*msg = rpmsinfoMsg(sinfo);
+    return (sinfo->rc != RPMRC_FAIL);
+}
+
+/* Require valid digests on entire package for signing. */
+static int checkPkg(FD_t fd, char **msg)
+{
+    int rc;
+    struct rpmvs_s *vs = rpmvsCreate(RPMSIG_DIGEST_TYPE, 0, NULL);
+    off_t offset = Ftell(fd);
+
+    Fseek(fd, 0, SEEK_SET);
+    rc = rpmpkgRead(vs, fd, NULL, NULL, msg);
+    if (!rc)
+	rc = rpmvsVerify(vs, RPMSIG_DIGEST_TYPE, msgCb, msg);
+    Fseek(fd, offset, SEEK_SET);
+
+    rpmvsFree(vs);
+    return rc;
+}
+
 /** \ingroup rpmcli
  * Create/modify elements in signature header.
  * @param rpm		path to package
@@ -563,6 +619,11 @@ static int rpmSign(const char *rpm, int deleting, int flags)
 
     if (flags & RPMSIGN_FLAG_IMA) {
 	if (includeFileSignatures(&sigh, &h))
+	    goto exit;
+    }
+
+    if (flags & RPMSIGN_FLAG_FSVERITY) {
+	if (includeVeritySignatures(fd, &sigh, &h))
 	    goto exit;
     }
 
