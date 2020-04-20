@@ -1041,6 +1041,11 @@ AS_IF([test "$enable_plugins" != no],[
 ])
 AM_CONDITIONAL(IMA, [test "x$ac_cv_func_lsetxattr" = xyes])
 
+AS_IF([test "$enable_plugins" != no],[
+AC_CHECK_HEADERS([linux/fsverity.h],[FSVERITY_IOCTL="yes"])
+])
+AM_CONDITIONAL(FSVERITY_IOCTL,[test "x$FSVERITY_IOCTL" = xyes])
+
 user_with_uid0=$(awk -F: '$3==0 {print $1;exit}' /etc/passwd)
 group_with_gid0=$(awk -F: '$3==0 {print $1;exit}' /etc/group)
 AC_DEFINE_UNQUOTED([UID_0_USER],["$user_with_uid0"],[Get the user name having userid 0])
